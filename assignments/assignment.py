@@ -203,11 +203,11 @@ class AdversarialExamples:
 
         """
         mean1 = np.zeros(n_features)
-        mean2 = np.array([5] * n_features)
+        mean2 = np.array([2] * n_features)
 
         # Spreading of the clusters along different directions
         cov1 = np.diag(np.linspace(1, 2, n_features))
-        cov2 = np.diag(np.linspace(1, 2, n_features))
+        cov2 = np.diag(np.linspace(1, 3, n_features))
 
         # samples for each cluster
         cluster1 = np.random.multivariate_normal(mean1, cov1, n_samples // 2)
