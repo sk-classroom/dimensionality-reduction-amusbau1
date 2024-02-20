@@ -34,7 +34,24 @@ class PrincipalComponentAnalysis:
         self : object
             Returns the instance itself.
         """
-        pass
+        # following from exercise 1
+        # center the data
+        self.mean = np.mean(X, axis=0)
+        X_centered = X - self.mean
+        # Compute covariance matrix
+        cov_mat = np.cov(X_centered.T)
+        # compute eigen_values and eigen_vectors
+        eigen_vals, eigen_vecs = np.linalg.eig(cov_mat)
+        tot = sum(eigen_vals)
+        var_exp = [(i / tot) for i in sorted(eigen_vals, reverse=True)]
+        cum_var_exp = np.cumsum(var_exp)
+        # sorting eigen values and eigen vectors
+        eig_index = np.argsort(eigen_vals)[::-1]
+        eigen_vecs = eigen_vecs[:, eig_index]
+        # select top N components
+        self.components = eigen_vecs[:, : self.n_components]
+
+        return self
 
     def transform(self, X: np.ndarray) -> np.ndarray:
         """
@@ -53,7 +70,9 @@ class PrincipalComponentAnalysis:
         X_new : ndarray of shape (n_samples, n_components)
             Transformed values.
         """
-        pass
+        X_centered = X - self.mean
+        X_transformed = np.dot(X_centered, self.components)
+        return X_transformed
 
 
 # TODO: implement the LDA with numpy
@@ -91,7 +110,43 @@ class LinearDiscriminantAnalysis:
         5. Sort the eigenvectors by decreasing eigenvalues and choose k eigenvectors with the largest eigenvalues to form a d×k dimensional matrix W.
         6. Use this d×k eigenvector matrix to transform the samples onto the new subspace.
         """
-        pass
+        number_of_features = X.shape[1]
+        unique_labels = np.unique(y)
+        num_of_class = len(unique_labels)
+
+        # within class matix
+        Sw = np.zeros((number_of_features, number_of_features))
+        # between class matrix
+        Sb = np.zeros((number_of_features, number_of_features))
+
+        # overall mean computation
+        mean_overall = np.mean(X, axis=0)
+        self.means_ = np.zeros((num_of_class, number_of_features))
+
+        for index, label in enumerate(unique_labels):
+            X_class = X[y == label]
+            mean_class = np.mean(X_class, axis=0)
+            self.means_[index] = mean_class
+
+            # within class matrix
+            Sw = Sw + np.dot((X_class - mean_class).T, (X_class - mean_class))
+
+            # Between class matrix
+            n_class = X_class.shape[0]
+            mean_diff = (mean_class - mean_overall).reshape(number_of_features, 1)
+            Sb = Sb + n_class * np.dot(mean_diff, mean_diff.T)
+
+        # solve the eigen value
+        eigvals, eigvecs = np.linalg.eig(np.linalg.inv(Sw).dot(Sb))
+
+        # sort eigen-vectors by eigen values in descending order
+        index = np.argsort(eigvals[::-1])
+        eigvecs = eigvecs[:, index]
+
+        # select the top components eigen vectors
+        self.scalings_ = eigvecs[:, : self.n_components]
+
+        return self
 
     def transform(self, X: np.ndarray) -> np.ndarray:
         """
@@ -110,7 +165,9 @@ class LinearDiscriminantAnalysis:
         X_new : ndarray of shape (n_samples, n_components)
             Transformed values.
         """
-        pass
+        X_transformed = np.dot(X, self.scalings_)
+
+        return X_transformed
 
 
 # TODO: Generating adversarial examples for PCA.
@@ -145,4 +202,24 @@ class AdversarialExamples:
             Cluster IDs. y[i] is the cluster ID of the i-th sample.
 
         """
-        pass
+        mean1 = np.zeros(n_features)
+        mean2 = np.array([2] * n_features)
+
+        # Spreading of the clusters along different directions
+        cov1 = np.diag(np.linspace(1, 2, n_features))
+        cov2 = np.diag(np.linspace(1, 3, n_features))
+
+        # samples for each cluster
+        cluster1 = np.random.multivariate_normal(mean1, cov1, n_samples // 2)
+        cluster2 = np.random.multivariate_normal(
+            mean2, cov2, n_samples - n_samples // 2
+        )
+
+        # Combined samples
+        X = np.vstack((cluster1, cluster2))
+        y = np.array([0] * (n_samples // 2) + [1] * (n_samples - n_samples // 2))
+
+        return X, y
+
+
+# %%
